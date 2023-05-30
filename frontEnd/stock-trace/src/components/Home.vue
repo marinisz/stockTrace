@@ -17,6 +17,7 @@
                         :rules="[rules.notEmptyStock]"
                         label="Stock"
                         @input="formatText"
+                        placeholder="Ex: IBM"
                         required
                       ></v-text-field>
                     </v-col>
@@ -44,14 +45,20 @@
                       color="#5BD098"
                       block
                       dark
-                      @click.native="createSearch"
+                      :disabled="!isFormValid"
+                      @click="createSearch"
                       >Submit</v-btn
                     >
                     <span>{{ errorMessage }}</span>
                   </v-row>
                 </v-col>
               </v-form>
-              <v-row align="center" justify="center" class="mt-4" v-if="hasStock">
+              <v-row
+                align="center"
+                justify="center"
+                class="mt-4"
+                v-if="hasStock"
+              >
                 <v-col>
                   <v-row class="mt-2">
                     <h1>Stock: {{ current.stock }}</h1>
@@ -79,6 +86,7 @@ export default {
     return {
       errorMessage: "",
       hasStock: false,
+      isFormValid: false,
       search: {
         stock: "",
         min: null,
@@ -98,6 +106,17 @@ export default {
       },
     };
   },
+  watch: {
+    "search.stock": function () {
+      this.validateForm();
+    },
+    "search.min": function () {
+      this.validateForm();
+    },
+    "search.max": function () {
+      this.validateForm();
+    },
+  },
   methods: {
     formatText() {
       this.search.stock = this.search.stock.toUpperCase();
@@ -109,19 +128,22 @@ export default {
         this.hasStock = true;
       } else {
         this.errorMessage = "Campos do formulário estão vazios";
-        console.log("Campos do formulário estão vazios");
       }
     },
     setCurrent(stock) {
-      console.log("settando");
       this.current.stock = stock.stock;
-      console.log(this.current);
     },
     resetForm() {
-      console.log("reset");
       this.search.stock = "";
       this.search.min = null;
       this.search.max = null;
+    },
+    validateForm() {
+      if (this.search.stock && (this.search.min >= 0 && this.search.min != null) && (this.search.max >= 0 && this.search.max != null)) {
+        this.isFormValid = true;
+      } else {
+        this.isFormValid = false;
+      }
     },
   },
 };
