@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid>
+  <v-container class="fill-height" style="background-color: #d7f3e5" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="6">
         <v-row align="center" justify="center" dense>
@@ -7,19 +7,22 @@
             <v-card-title
               ><h2><b>Live Tracing</b></h2></v-card-title
             >
-            <v-card-text style="padding: 7vh">
+            <v-card-text class="pa-2" style="padding: 7vh">
               <v-form ref="stockForm" lazy-validation autocomplete="off">
                 <v-col>
                   <v-row>
                     <v-col cols="12" sm="12" md="12"
-                      ><v-text-field
+                      ><v-autocomplete
                         v-model="search.stock"
                         :rules="[rules.notEmptyStock]"
                         label="Stock"
+                        :items="this.tickers"
                         @input="formatText"
-                        placeholder="Ex: IBM"
+                        placeholder="Ex: VALE3"
+                        :filter="filterTicket"
+                        dense
                         required
-                      ></v-text-field>
+                      ></v-autocomplete>
                     </v-col>
                     <v-col>
                       <v-text-field
@@ -40,37 +43,19 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
-                  <v-row>
+                  <v-row class="pa-3">
                     <v-btn
+                      max-width="10"
                       color="#5BD098"
                       block
                       dark
                       :disabled="!isFormValid"
-                      @click="createSearch"
+                      @click="showAlert(true)"
                       >Submit</v-btn
                     >
-                    <span>{{ errorMessage }}</span>
                   </v-row>
                 </v-col>
               </v-form>
-              <v-row
-                align="center"
-                justify="center"
-                class="mt-4"
-                v-if="hasStock"
-              >
-                <v-col>
-                  <v-row class="mt-2">
-                    <h1>Stock: {{ current.stock }}</h1>
-                  </v-row>
-                  <v-row class="mt-2">
-                    <h2 class="mt-2">Current value: R$102,00</h2>
-                  </v-row>
-                  <v-row class="mt-2">
-                    <h2 class="mt-2">Action: BUY</h2>
-                  </v-row>
-                </v-col>
-              </v-row>
             </v-card-text>
           </v-card>
         </v-row>
@@ -81,12 +66,544 @@
 </template>
 
 <script>
+import axios from "axios";
+import Swal from "sweetalert2";
+
 export default {
   data() {
     return {
       errorMessage: "",
-      hasStock: false,
       isFormValid: false,
+      stopTrack: false,
+      tickers: [
+        "HAPV3",
+        "VALE3",
+        "MGLU3",
+        "B3SA3",
+        "BRFS3",
+        "PETR4",
+        "BBDC4",
+        "COGN3",
+        "ABEV3",
+        "CVCB3",
+        "VIIA3",
+        "CIEL3",
+        "CMIG4",
+        "CCRO3",
+        "ITUB4",
+        "MRFG3",
+        "ASAI3",
+        "ITSA4",
+        "RADL3",
+        "RAIZ4",
+        "NTCO3",
+        "BBDC3",
+        "JBSS3",
+        "VBBR3",
+        "RENT3",
+        "LREN3",
+        "ANIM3",
+        "PETR3",
+        "VIVT3",
+        "BBAS3",
+        "CRFB3",
+        "GGBR4",
+        "PRIO3",
+        "TIMS3",
+        "GOLL4",
+        "RAIL3",
+        "AZUL4",
+        "USIM5",
+        "CPLE6",
+        "LWSA3",
+        "WEGE3",
+        "UGPA3",
+        "CSAN3",
+        "ELET3",
+        "POMO4",
+        "EMBR3",
+        "ALPA4",
+        "EQTL3",
+        "QUAL3",
+        "SEQL3",
+        "CYRE3",
+        "CSNA3",
+        "BBSE3",
+        "CASH3",
+        "BEEF3",
+        "MRVE3",
+        "HYPE3",
+        "SUZB3",
+        "MLAS3",
+        "SMFT3",
+        "GOAU4",
+        "PETZ3",
+        "GMAT3",
+        "SOMA3",
+        "AMER3",
+        "CBAV3",
+        "CMIN3",
+        "RDOR3",
+        "ALSO3",
+        "SIMH3",
+        "GUAR3",
+        "HBSA3",
+        "FLRY3",
+        "SBSP3",
+        "ODPV3",
+        "ENEV3",
+        "IGTI3",
+        "IGTI3",
+        "OIBR3",
+        "DXCO3",
+        "YDUQ3",
+        "MOVI3",
+        "TOTS3",
+        "STBP3",
+        "RRRP3",
+        "ENBR3",
+        "CPFE3",
+        "AESB3",
+        "SBFG3",
+        "ECOR3",
+        "IFCM3",
+        "IRBR3",
+        "ONCO3",
+        "VAMO3",
+        "ELET6",
+        "MULT3",
+        "CEAB3",
+        "LIGT3",
+        "BRKM5",
+        "LJQQ3",
+        "MODL3",
+        "ENAT3",
+        "GFSA3",
+        "RECV3",
+        "RAPT4",
+        "MYPK3",
+        "PSSA3",
+        "AERI3",
+        "BRAP4",
+        "GGPS3",
+        "BRSR6",
+        "NEOE3",
+        "JHSF3",
+        "KRSA3",
+        "PCAR3",
+        "EGIE3",
+        "EZTC3",
+        "SAPR4",
+        "TRPL4",
+        "MILS3",
+        "CXSE3",
+        "CSMG3",
+        "KEPL3",
+        "RCSL3",
+        "MDIA3",
+        "SGPS3",
+        "PTBL3",
+        "SMTO3",
+        "JALL3",
+        "KLBN4",
+        "POSI3",
+        "DIRR3",
+        "PLPL3",
+        "TEND3",
+        "VIVA3",
+        "VULC3",
+        "SLCE3",
+        "AMAR3",
+        "BPAN4",
+        "VIVR3",
+        "TTEN3",
+        "CAML3",
+        "AZEV4",
+        "ESPA3",
+        "ZAMP3",
+        "ENJU3",
+        "RANI3",
+        "CURY3",
+        "HBOR3",
+        "MBLY3",
+        "ABCB4",
+        "TUPY3",
+        "GRND3",
+        "LOGG3",
+        "GOAU3",
+        "AMBP3",
+        "BOAS3",
+        "DASA3",
+        "TASA4",
+        "CPLE3",
+        "INEP3",
+        "ARZZ3",
+        "INTB3",
+        "PGMN3",
+        "EVEN3",
+        "SQIA3",
+        "MTRE3",
+        "TRAD3",
+        "ALPK3",
+        "PINE4",
+        "FESA4",
+        "BMGB4",
+        "MDNE3",
+        "CMIG3",
+        "ORVR3",
+        "TRIS3",
+        "LUPA3",
+        "SEER3",
+        "BRIT3",
+        "INEP4",
+        "AGRO3",
+        "ARML3",
+        "ROMI3",
+        "VLID3",
+        "LEVE3",
+        "BLAU3",
+        "WIZC3",
+        "MEAL3",
+        "LAVV3",
+        "CTSA4",
+        "MATD3",
+        "ITUB3",
+        "SHOW3",
+        "SHUL4",
+        "UNIP6",
+        "POMO3",
+        "NINJ3",
+        "LAND3",
+        "TECN3",
+        "AZEV3",
+        "CLSA3",
+        "NGRD3",
+        "AALR3",
+        "USIM3",
+        "KLBN3",
+        "CSED3",
+        "HBRE3",
+        "BMOB3",
+        "PORT3",
+        "MELK3",
+        "RCSL4",
+        "JSLG3",
+        "PNVL3",
+        "WEST3",
+        "CTNM4",
+        "TAEE4",
+        "SAPR3",
+        "OPCT3",
+        "VITT3",
+        "SYNE3",
+        "FRAS3",
+        "ETER3",
+        "LPSB3",
+        "BRAP3",
+        "SOJA3",
+        "PRNR3",
+        "PDGR3",
+        "FIQE3",
+        "VSTE3",
+        "AGXY3",
+        "PFRM3",
+        "DMVF3",
+        "ELMD3",
+        "DOTZ3",
+        "DEXP3",
+        "ITSA3",
+        "LOGN3",
+        "DESK3",
+        "BRPR3",
+        "BOBR4",
+        "EQPA3",
+        "SANB4",
+        "APER3",
+        "TAEE3",
+        "TGMA3",
+        "SANB3",
+        "TFCO4",
+        "CSUD3",
+        "ALLD3",
+        "VVEO3",
+        "BRKM3",
+        "FHER3",
+        "RNEW4",
+        "COCE5",
+        "GGBR3",
+        "TCSA3",
+        "TPIS3",
+        "CTSA3",
+        "OFSA3",
+        "OIBR4",
+        "RSID3",
+        "RNEW3",
+        "NEXP3",
+        "ALPA3",
+        "SNSY5",
+        "LVTC3",
+        "HAGA4",
+        "CAMB3",
+        "PDTC3",
+        "EUCA3",
+        "BEES4",
+        "TASA3",
+        "SLED4",
+        "BEES3",
+        "ATMP3",
+        "ENGI4",
+        "EUCA4",
+        "RPMG3",
+        "ALUP4",
+        "SCAR3",
+        "EALT4",
+        "ALUP3",
+        "BMEB4",
+        "CEDO4",
+        "HOOT4",
+        "BRSR3",
+        "UNIP3",
+        "PMAM3",
+        "CRPG5",
+        "BPAC5",
+        "UCAS3",
+        "CGRA4",
+        "HAGA3",
+        "BIOM3",
+        "OSXB3",
+        "ENGI3",
+        "CTNM3",
+        "RSUL4",
+        "TELB3",
+        "MNPR3",
+        "CEBR6",
+        "RAPT3",
+        "TEKA4",
+        "ATOM3",
+        "AVLL3",
+        "CEBR5",
+        "JFEN3",
+        "RDNI3",
+        "SNSY3",
+        "TELB4",
+        "BPAC3",
+        "MOAR3",
+        "CEDO3",
+        "SLED3",
+        "REDE3",
+        "GSHP3",
+        "PTNT4",
+        "WHRL4",
+        "BAZA3",
+        "MTSA4",
+        "BAHI3",
+        "TRPL3",
+        "BGIP4",
+        "MGEL4",
+        "CEBR3",
+        "BALM4",
+        "DOHL4",
+        "CGAS5",
+        "CLSC4",
+        "CGRA3",
+        "FRTA3",
+        "BMIN3",
+        "DEXP4",
+        "MERC4",
+        "IGTI4",
+        "IGTI4",
+        "CTKA4",
+        "PTNT3",
+        "ENMT4",
+        "ENMT3",
+        "CRPG6",
+        "BRSR5",
+        "BSLI4",
+        "CSRN3",
+        "BRIV4",
+        "WHRL3",
+        "IGBR3",
+        "HBTS5",
+        "WLMM4",
+        "BSLI3",
+        "BALM3",
+        "MWET4",
+        "UNIP5",
+        "FESA3",
+        "CLSC3",
+        "CEEB3",
+        "BGIP3",
+        "LUXM4",
+        "BMIN4",
+        "CALI3",
+        "BMEB3",
+        "BRIV3",
+        "AFLT3",
+        "DTCY3",
+        "BMKS3",
+        "CPLE5",
+        "MNDL3",
+        "BAUH4",
+        "EMAE4",
+        "RPAD6",
+        "NORD3",
+        "ELET5",
+        "ESTR4",
+        "EPAR3",
+        "PLAS3",
+        "CSRN5",
+        "CRIV3",
+        "LIPR3",
+        "MSPA4",
+        "PEAB3",
+        "CSRN6",
+        "BRKM6",
+        "EALT3",
+        "BRGE6",
+        "CBEE3",
+        "BRGE11",
+        "CRDE3",
+        "PATI4",
+        "TKNO4",
+        "SOND5",
+        "EKTR4",
+        "AHEB3",
+        "CSAB4",
+        "GEPA4",
+        "FRIO3",
+        "EQMA3B",
+        "BNBR3",
+        "CRIV4",
+        "RPAD5",
+        "BDLL4",
+        "JOPA3",
+        "MRSA6B",
+        "CSAB3",
+        "HETA4",
+        "GEPA3",
+        "CGAS3",
+        "BRGE7",
+        "USIM6",
+        "PEAB4",
+        "AHEB5",
+        "DOHL3",
+        "JOPA4",
+        "MWET3",
+        "EKTR3",
+        "BRGE12",
+        "COCE3",
+        "PATI3",
+        "ODER4",
+        "CEEB5",
+        "RPAD3",
+        "BDLL3",
+        "EQPA7",
+        "BRGE3",
+        "ESTR3",
+        "AHEB6",
+        "PARD3",
+        "CASN3",
+        "WLMM3",
+        "MAPT4",
+        "CEED3",
+        "CEED4",
+        "GPAR3",
+        "MTSA3",
+        "BRGE8",
+        "MAPT3",
+        "DMFN3",
+        "SOND6",
+        "MRSA5B",
+        "WIZS3",
+        "LLIS3",
+        "MSPA3",
+        "BRML3",
+        "DMMO3",
+        "EQPA5",
+        "GETT3",
+        "GETT4",
+        "SULA4",
+        "SULA3",
+        "CTKA3",
+        "BRGE5",
+        "CRPG3",
+        "MRSA3B",
+        "CEPE5",
+        "MERC3",
+        "TCNO4",
+        "TCNO3",
+        "CEPE6",
+        "BKBR3",
+        "MTIG4",
+        "BLUT4",
+        "BLUT3",
+        "MODL4",
+        "CARD3",
+        "SHUL3",
+        "FIGE3",
+        "FNCN3",
+        "TEKA3",
+        "HETA3",
+        "LCAM3",
+        "BIDI4",
+        "BIDI3",
+        "EEEL4",
+        "EEEL3",
+        "BBRK3",
+        "SOND3",
+        "CEGR3",
+        "CESP6",
+        "CESP3",
+        "CESP5",
+        "ECPR4",
+        "MOSI3",
+        "POWE3",
+        "EQPA6",
+        "ECPR3",
+        "GNDI3",
+        "LAME4",
+        "LAME3",
+        "OMGE3",
+        "IGTA3",
+        "JPSA3",
+        "BRDT3",
+        "JBDU4",
+        "JBDU3",
+        "HGTX3",
+        "CCPR3",
+        "DTEX3",
+        "VVAR3",
+        "PNVL4",
+        "TESA3",
+        "BTOW3",
+        "LINX3",
+        "BTTL3",
+        "GPCP3",
+        "GPCP4",
+        "SMLS3",
+        "MMXM3",
+        "BSEV3",
+        "CNTO3",
+        "TIET4",
+        "TIET3",
+        "CORR4",
+        "CEPE3",
+        "CALI4",
+        "SNSY6",
+        "CASN4",
+        "EMAE3",
+        "BPAR3",
+        "APTI4",
+        "VSPT3",
+        "MTIG3",
+        "FIGE4",
+        "LUXM3",
+        "TKNO3",
+        "COCE6",
+        "MGEL3",
+        "CTSA8",
+        "MMAQ4",
+      ],
       search: {
         stock: "",
         min: null,
@@ -94,8 +611,9 @@ export default {
       },
       current: {
         stock: "",
-        min: null,
-        max: null,
+        price: "",
+        action: "",
+        time: "",
       },
       rules: {
         notEmptyValue: (value) => {
@@ -105,6 +623,15 @@ export default {
         notEmptyStock: (v) => !!v || "Stock is required",
       },
     };
+  },
+  mounted() {
+    window.setInterval(() => {
+      if (this.stopTrack == false) {
+        this.setCurrent(this.current.stock)
+      } else {
+        console.log("Search stopped");
+      }
+    }, 10000);
   },
   watch: {
     "search.stock": function () {
@@ -122,27 +649,138 @@ export default {
       this.search.stock = this.search.stock.toUpperCase();
     },
     createSearch() {
+      this.resetCurrent()
       if (this.$refs.stockForm.validate()) {
-        this.setCurrent(this.search);
-        this.resetForm();
-        this.hasStock = true;
+        const data = {
+          stockName: this.search.stock,
+          minValue: parseFloat(this.search.min),
+          maxValue: parseFloat(this.search.max),
+        };
+        axios
+          .post("http://localhost:8080/stock/request", data, {
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "POST",
+              "Access-Control-Allow-Headers": "Origin, Content-Type, Accept",
+            },
+          })
+          .then((response) => {
+            this.setCurrent(data.stockName);
+            console.log(response.data);
+          })
+          .catch((error) => {
+            this.resetCurrent();
+            console.error("Erro:", error);
+          });
       } else {
         this.errorMessage = "Campos do formulário estão vazios";
       }
+      this.resetForm();
     },
     setCurrent(stock) {
-      this.current.stock = stock.stock;
+      if ((stock != "" && stock != undefined) || !stock) {
+        console.log("Current: ");
+        console.log(this.current);
+        var url = "http://localhost:8080/stock/" + stock;
+        axios
+          .get(url)
+          .then((response) => {
+            response = response.data;
+            this.stopTrack = false;
+            this.current.stock = stock;
+            this.current.price = response.price;
+            this.current.action = response.action;
+            this.current.time =
+              response.time.substring(0, 10) +
+              " " +
+              response.time.substring(11, 19);
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      }
+    },
+    filterTicket(item, queryText, itemText) {
+      return itemText.toLowerCase().indexOf(queryText.toLowerCase()) !== -1;
     },
     resetForm() {
       this.search.stock = "";
       this.search.min = null;
       this.search.max = null;
     },
+    resetCurrent() {
+      this.current.stock = "";
+      this.current.price = "";
+      this.current.action = "";
+      this.current.time = "";
+    },
     validateForm() {
-      if (this.search.stock && (this.search.min >= 0 && this.search.min != null) && (this.search.max >= 0 && this.search.max != null)) {
+      if (
+        this.search.stock &&
+        this.search.min >= 0 &&
+        this.search.min != null &&
+        this.search.max >= 0 &&
+        this.search.max != null
+      ) {
         this.isFormValid = true;
       } else {
         this.isFormValid = false;
+      }
+    },
+    showAlert(option) {
+      if (option) this.createSearch();
+      if (
+        this.current.price != "" &&
+        this.current.stock != "" &&
+        this.current.price != undefined
+      ) {
+        Swal.fire({
+          icon: "success",
+          title: "Last price:",
+          html: `<p>Stock: ${this.current.stock}</p>
+                 <p>Price: ${this.current.price}</p>
+                 <p>Action: ${this.current.action}</p>
+                 <p>Time: ${this.current.time}</p>`,
+          confirmButtonText: "Reload",
+          confirmButtonAriaLabel: "Reload",
+          showDenyButton: true,
+          denyButtonText: `Cancel`,
+          footer: "The stock price updates in 30 seconds",
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.showAlert(false);
+          } else {
+            this.stopTrack = true;
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: "info",
+          title: "Searching data",
+          text: `${this.current.stock}`,
+          showDenyButton: true,
+          footer: "<span>Wait 30 secoonds to reload</span>",
+          confirmButtonText: "Reload",
+          denyButtonText: `Cancel`,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+            setTimeout(() => {
+              Swal.hideLoading();
+            }, 30000);
+          },
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.showAlert(false);
+          } else {
+            this.stopTrack = true;
+            this.resetCurrent();
+          }
+        });
       }
     },
   },
