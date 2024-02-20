@@ -1,4 +1,3 @@
-import os
 from selenium import webdriver
 from flask import Flask, jsonify, send_from_directory
 from selenium.webdriver.chrome.options import Options
@@ -18,11 +17,6 @@ def favicon():
 
 @app.route('/<stock>', methods=['GET'])
 def hello(stock):
-    # Obter o diretório do script atual
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # Configurar o caminho para o chromedriver na pasta atual
-    chrome_driver_path = os.path.join(script_dir, 'chromedriver.exe')
     service = Service(ChromeDriverManager().install())
     # Configurar o navegador Chrome
     browser = webdriver.Chrome(service=service, options=chrome_options)
